@@ -1,46 +1,64 @@
-import ContactItem from 'components/ContactItem/ContactItem';
-import { List, Error } from './ContactList.styled';
-import { useSelector } from 'react-redux';
-import { getFilter } from 'redux/contactsSlice';
-import {
-  useGetContactsQuery,
-  useDeleteContactMutation,
-} from 'redux/contactsApi';
+import { Button, ContainerR, Li, P, Ul } from './ContactList.styled';
+import { useDispatch, useSelector } from 'react-redux';
 
-export default function ContactList() {
-  const { data = [] } = useGetContactsQuery();
-  const { filter } = useSelector(state => getFilter(state));
-  const [deleteContact] = useDeleteContactMutation();
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import DeleteIcon from '@mui/icons-material/Delete';
+import { Tooltip } from '@mui/material';
+import { deleteContact } from 'redux/Contacts/operationsContact';
+import { selectContacts, selectFilter } from 'redux/selectors';
 
-  const handleDeleteContact = id => deleteContact(id);
+export const ContactList = () => {
+  const contacts = useSelector(selectContacts);
+  const filter = useSelector(selectFilter);
+  const dispatch = useDispatch();
 
-  const filterList = () => {
-    const normalValue = filter.toLowerCase().trim();
-    return data.filter(contact =>
-      contact.name.toLowerCase().includes(normalValue)
+  const deleteContactsById = (id, contactName) => {
+    dispatch(deleteContact(id));
+    toast.success(
+      `The contact "${contactName}" has been successfully deleted.`
     );
   };
 
-  const contactsList = filterList();
+  const filterContacts = () => {
+    if (filter === '') {
+      return contacts;
+    } else {
+      return contacts.filter(contact =>
+        contact.name.toLowerCase().includes(filter.toLowerCase())
+      );
+    }
+  };
+
   return (
-    <List>
-      {contactsList.length > 0 ? (
-        contactsList.map(({ id, name, number }) => {
-          return (
-            <ContactItem
-              key={id}
-              id={id}
-              name={name}
-              number={number}
-              deleteContact={handleDeleteContact}
-            />
-          );
-        })
+    <ContainerR>
+      {contacts.length <= 0 ? (
+        <P>No contacts were found for this request</P>
+      ) : filterContacts().length <= 0 ? (
+        <P>No contacts found for this search "{filter}"</P>
       ) : (
-        <Error>
-          <strong>Oops, nothing</strong>
-        </Error>
+        <Ul>
+          {filterContacts().map(({ id, name, number }) => {
+            return (
+              <Li key={id}>
+                <span>
+                  {name} : {number}
+                </span>
+                <Tooltip title="Delete contacts">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      deleteContactsById(id, name);
+                    }}
+                  >
+                    <DeleteIcon></DeleteIcon>
+                  </Button>
+                </Tooltip>
+              </Li>
+            );
+          })}
+        </Ul>
       )}
-    </List>
+    </ContainerR>
   );
-}
+};

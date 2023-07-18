@@ -1,82 +1,51 @@
-import { useState } from 'react';
-import { nanoid } from 'nanoid';
-import {
-  FormContainer,
-  InputContainer,
-  LabelInput,
-  Input,
-  Button,
-} from './ContactForm.styled';
-import {
-  useGetContactsQuery,
-  useCreateContactMutation,
-} from 'redux/contactsApi';
+import { Button, Form, Input } from './ContactForm.styled';
+import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import { addContact } from 'redux/Contacts/operationsContact';
+import { selectContacts } from 'redux/selectors';
 
-export default function ContactForm() {
-  const [name, setName] = useState('');
-  const [number, setPhone] = useState('');
-
-  const { data: contacts } = useGetContactsQuery();
-  const [createContact] = useCreateContactMutation();
-
-  const changeName = e => setName(e.target.value);
-  const changeNumber = e => setPhone(e.target.value);
-
-  const handleSubmit = e => {
+export const ContactForm = () => {
+  const dispatch = useDispatch();
+  const contacts = useSelector(selectContacts);
+  const formSubmit = e => {
     e.preventDefault();
-    const newContact = {
-      name,
-      number,
-      id: nanoid(),
-    };
-    contacts.find(contact => contact.name.toLowerCase() === name.toLowerCase())
-      ? toast.warn(`${name} : ${number} is already in contacts`)
-      : createContact(newContact);
-
-    reset();
-  };
-
-  const reset = () => {
-    setName('');
-    setPhone('');
+    const { name, number } = e.target.elements;
+    if (
+      contacts.find(
+        option => option.name.toLowerCase() === name.value.toLowerCase()
+      )
+    ) {
+      toast.warning(`${name.value} is already in contacts list`);
+      return false;
+    } else {
+      dispatch(addContact({ name: name.value, number: number.value }));
+      name.value = '';
+      number.value = '';
+      return true;
+    }
   };
 
   return (
-    <FormContainer onSubmit={handleSubmit}>
-      <InputContainer>
-        <LabelInput>
-          Name
-          <Input
-            type="text"
-            name="name"
-            pattern="^[a-zA-Zа-яА-Я]+([' \-][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*$"
-            title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
-            required
-            value={name}
-            onChange={changeName}
-            placeholder="Enter name"
-            autoComplete="off"
-          />
-        </LabelInput>
-
-        <LabelInput>
-          Number
-          <Input
-            type="tel"
-            name="number"
-            phonePattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
-            title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
-            required
-            value={number}
-            onChange={changeNumber}
-            placeholder="Enter phone number"
-            autoComplete="off"
-          />
-        </LabelInput>
-      </InputContainer>
-
-      <Button type="submit">Add contact</Button>
-    </FormContainer>
+    <>
+      <Form onSubmit={formSubmit}>
+        <label htmlFor="name">Name</label>
+        <Input
+          type="text"
+          name="name"
+          pattern="^[A-Za-z\u0080-\uFFFF ']+$"
+          title="Name may contain only letters, apostrophe, dash and spaces. For example Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan"
+          required
+        />
+        <label htmlFor="number">Number</label>
+        <Input
+          type="tel"
+          name="number"
+          pattern="\+?[0-9\s\-\(\)]+"
+          title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
+          required
+        />
+        <Button type="submit">Add contact</Button>
+      </Form>
+    </>
   );
-}
+};
